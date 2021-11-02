@@ -17,7 +17,7 @@ class Scrapper(object):
         self.URL = self.construct_url()
         self.DATA_PATH = abspath('./data')
 
-        self.DATA_FIELDS = ['IMBd_id', 'title', 'released_year',
+        self.DATA_FIELDS = ['IMBd_id', 'title', 'ranking', 'ranking_name', 'released_year',
                             'duration_min', 'genre', 'collected_at']
 
     def __del__(self) -> None:
@@ -29,7 +29,7 @@ class Scrapper(object):
             - make soup + extract data
             - store data as csv
 
-        Then : concat csvs into a new one
+            Then : concat csvs into a new one
         '''
         n_start, n_res, n_end = self.get_n()
         n_page = round(n_end / n_res)
@@ -91,12 +91,17 @@ class Scrapper(object):
         tmp_data = []
         films = soup.find_all(class_='lister-item mode-advanced')
         for film in films:
+            # Select method is more restrictive
+
             img_div, title, * \
                 rest = film.find_all('a', {'href': re.compile(r'^/title/')})
 
             tmp_data.append([
                 title.get('href').split('/')[2],  # IMBd_id
                 title.text,
+                self.sanitize_text(film.select(
+                    "span.lister-item-index")[0].text),  # ranking for
+                'top_250',
                 self.sanitize_text(
                     film.find('span', {'class': 'lister-item-year'}).text),
                 self.sanitize_text(
@@ -109,7 +114,7 @@ class Scrapper(object):
 
     def sanitize_text(self, txt: str) -> str:
         '''Remove unwanted chars in str'''
-        char_list = [' ', '\(', '\)', '\n']
+        char_list = [' ', '\(', '\)', '\n', '\.']
         return re.sub('|'.join(char_list), '', txt)
 
     def construct_url(self) -> str:
