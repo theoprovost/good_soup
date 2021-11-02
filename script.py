@@ -137,17 +137,13 @@ class Scrapper(object):
             return False
 
     class DB():
-        def __init__(self, db_fields, data_path):
+        def __init__(self, db_fields: str, data_path: str) -> None:
             self.DB_CONNECTION_STR = 'postgresql://postgres:@localhost:5432/good_soup'
             self.DB_SCRIPTS_PATH = abspath('./database')
             self.DB_FIELDS = db_fields
             self.DB_USER, self.DB_PWD, self.DB_NAME, self.DB_HOST = self.decompose_db_connection_str()
 
             self.DATA_PATH = data_path
-
-            self.gen_createdb_script()
-            self.gen_createtable_script()
-            self.gen_seed_script()
 
         def connect(self):
             try:
@@ -197,7 +193,7 @@ class Scrapper(object):
             with open(file_path, 'w') as f:
                 f.write(sql_txt)
 
-        def gen_seed_script(self):
+        def gen_seed_script(self) -> None:
             newest_data_path = self.get_newest_data_path()
             sql_txt = f'COPY records FROM \'{newest_data_path}\'\n'
             sql_txt += "(DELIMITER ',',\nnull \'\',\nFORMAT CSV,\nHEADER);\n"
@@ -205,7 +201,11 @@ class Scrapper(object):
             with open(file_path, 'w') as f:
                 f.write(sql_txt)
 
-        def execute_scripts(self):
+        def execute_scripts(self) -> None:
+            self.gen_createdb_script()
+            self.gen_createtable_script()
+            self.gen_seed_script()
+
             create_db_script = abspath(self.DB_SCRIPTS_PATH + '/create_db.sql')
             create_db_cmd = f'psql postgres -f {create_db_script}'
             process = subprocess.Popen(
@@ -233,6 +233,7 @@ URL_PARAMS = {
 }
 
 scrapper = Scrapper(url_params=URL_PARAMS)
+scrapper.crawl()
 scrapper.DB.execute_scripts()
 
 '''
