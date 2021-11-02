@@ -21,14 +21,22 @@ class Scrapper(object):
                             'duration_min', 'genre', 'collected_at']
 
     def __del__(self) -> None:
-        return False
+        return None
 
     def crawl(self):
+        '''Main function :
+            - itter over pages
+            - make soup + extract data
+            - store data as csv
+
+        Then : concat csvs into a new one
+        '''
         n_start, n_res, n_end = self.get_n()
         n_page = round(n_end / n_res)
+
         for i in range(n_page):
             if i == 0:
-                n = 1
+                n = n_start
             else:
                 n += n_res
 
@@ -39,11 +47,13 @@ class Scrapper(object):
         self.concat_csv()
 
     def store_csv(self, data):
+        '''Method to store data as .csv'''
         file_path = self.DATA_PATH + '/' + str(datetime.now()) + '.csv'
         pd.DataFrame(data, columns=self.DATA_FIELDS).to_csv(
             file_path, sep=',', index=False)
 
     def concat_csv(self):
+        '''Gets all the file in folder, concat them into a new one, then remove files'''
         filenames = [i for i in glob.glob(f'{self.DATA_PATH}/*.csv')]
         combined_csv = pd.concat([pd.read_csv(f) for f in filenames])
 
@@ -57,6 +67,11 @@ class Scrapper(object):
             os.remove(f)
 
     def get_n(self):
+        '''Retrieve elements n :
+            - n_start : first n
+            - n_res : n of results on page
+            - n_end : total n results
+        '''
         soup = self.make_soup()
         desc = soup.find(class_='desc').span.text
         n_start = desc[0]
@@ -65,12 +80,14 @@ class Scrapper(object):
         return (int(n_start), int(n_res), int(n_end))
 
     def make_soup(self, start: int = 0):
+        '''Concat url with start then call fetch. Retrieve BeautifulSoup html parser'''
         url = self.URL + '&start=' + str(start)
         print('Fetching : ', url)
         html = self.fetch(url)
         return BeautifulSoup(html, "html.parser")
 
     def extract_info(self, soup):
+        '''Method responsible to extract desired data from a soup parser'''
         tmp_data = []
         films = soup.find_all(class_='lister-item mode-advanced')
         for film in films:
@@ -91,10 +108,12 @@ class Scrapper(object):
         return tmp_data
 
     def sanitize_text(self, txt: str) -> str:
+        '''Remove unwanted chars in str'''
         char_list = [' ', '\(', '\)', '\n']
         return re.sub('|'.join(char_list), '', txt)
 
     def construct_url(self) -> str:
+        '''Construct the URL with the given url params'''
         url = self.BASE_URL
         for i, x in enumerate(self.URL_PARAMS.items()):
             if (i == 0 and self.BASE_URL[-1] != '?'):
@@ -107,6 +126,7 @@ class Scrapper(object):
         return url
 
     def fetch(self, url: str = None) -> str or bool:
+        '''Fetch the data via requests package'''
         if url is None:
             url = self.URL
 
@@ -129,16 +149,6 @@ scrapper = Scrapper(url_params=URL_PARAMS)
 scrapper.crawl()
 
 '''
-QUESTIONS :
-- une methode par donnée ?
-- unicité de l'information ? -> intrinsequement lié au web scrapping
-- données non structurée ?
-- obj
-- monitoring
-- html >
-
-
-
 - diff studios
 - diff en fn des années
 - score en fn de la durée
